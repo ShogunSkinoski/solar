@@ -1,26 +1,410 @@
 @import "tailwindcss";
 
+/* ─── Design tokens ─── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --orange: #f5a623;
+  --orange-dark: #e09010;
+  --panel-header-bg: #f5a623;
+  --panel-header-text: #fff;
+  --sidebar-bg: #1e1e1e;
+  --sidebar-border: #333;
+  --panel-bg: #111;
+  --bottom-bar-bg: #1a1a1a;
+  --bottom-bar-border: #333;
+  --text-primary: #fff;
+  --text-muted: #aaa;
+  --handle-size: 8px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #111;
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+
+/* ─── App shell ─── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ─── Main content area (sidebar + viewports) ─── */
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: 64px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+  padding: 4px 0;
+}
+
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0 4px;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-section-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.sidebar-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  align-items: center;
+}
+
+.sidebar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  gap: 2px;
+}
+
+.sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: rgba(245, 166, 35, 0.18);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.sidebar-item-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sidebar-item-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ─── Viewport area ─── */
+.viewports {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ─── Individual panel ─── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.panel-plan {
+  flex: 3;
+  border-right: 2px solid #000;
+}
+
+/* Right column: 3D view stacked above Elevations panel */
+.right-column {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-3d {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── Elevations Panel ─── */
+.elev-panel {
+  flex-shrink: 0;
+  height: 230px;
+  display: flex;
+  flex-direction: column;
+  background: #13131c;
+  border-top: 2px solid #000;
+  overflow: hidden;
+}
+
+.elev-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.elev-inputs {
+  width: 110px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 4px 8px;
+  border-right: 1px solid #222;
+  overflow-y: auto;
+}
+
+.elev-input-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #fff;
+  font-weight: 600;
+}
+
+.elev-input-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.elev-slider {
+  width: 100%;
+  accent-color: var(--orange);
+  cursor: pointer;
+  height: 14px;
+}
+
+.elev-diagram {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.elev-tabs {
+  display: flex;
+  border-top: 1px solid #222;
+  flex-shrink: 0;
+}
+
+.elev-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 2px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid #222;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.elev-tab:last-child {
+  border-right: none;
+}
+
+.elev-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.elev-tab.active {
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--orange);
+}
+
+.elev-tab-placeholder {
+  width: 36px;
+  height: 28px;
+  background: rgba(140, 155, 180, 0.15);
+  border-radius: 3px;
+}
+
+
+.panel-header {
+  background: var(--panel-header-bg);
+  color: var(--panel-header-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  letter-spacing: 0.3px;
+  user-select: none;
+}
+
+.panel-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.panel-header-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.panel-header-btn:hover {
+  color: #fff;
+}
+
+.panel-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* ─── Plan View Canvas ─── */
+.plan-view-canvas-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Bottom bar ─── */
+.bottom-bar {
+  height: 48px;
+  background: var(--bottom-bar-bg);
+  border-top: 1px solid var(--bottom-bar-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.imagery-type-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.imagery-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.imagery-info {
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: help;
+}
+
+.imagery-toggle {
+  display: flex;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #444;
+  background: #2a2a2a;
+}
+
+.toggle-btn {
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.toggle-btn.active {
+  background: var(--orange);
+  color: #fff;
+  font-weight: 600;
+}
+
+.toggle-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.zoom-icon {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.zoom-slider {
+  flex: 1;
+  accent-color: var(--orange);
+  cursor: pointer;
+}
+
+.next-btn {
+  margin-left: auto;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.next-btn:hover {
+  background: var(--orange-dark);
 }
