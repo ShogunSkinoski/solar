@@ -6,6 +6,7 @@ interface RooftopState {
     buildings: Building[];
     selectedBuildingId: string | null;
     activeRoofType: RoofType;
+    isPlacing: boolean;
     planViewSize: { width: number; height: number };
 }
 
@@ -29,6 +30,7 @@ export const useRooftopStore = create<RooftopStore>()(
         buildings: [],
         selectedBuildingId: null,
         activeRoofType: 'flat',
+        isPlacing: false,
         planViewSize: { width: 800, height: 600 },
 
         addBuilding: (footprint) =>
@@ -44,6 +46,7 @@ export const useRooftopStore = create<RooftopStore>()(
                     heigth: 0,
                 });
                 state.selectedBuildingId = id;
+                state.isPlacing = false;
             }),
 
         updateBuildingFootprint: (id, footprint) =>
@@ -72,15 +75,7 @@ export const useRooftopStore = create<RooftopStore>()(
         setActiveRoofType: (type) =>
             set((state) => {
                 state.activeRoofType = type;
-                // Also update selected building's roof type
-                if (state.selectedBuildingId) {
-                    const building = state.buildings.find(
-                        (b) => b.id === state.selectedBuildingId
-                    );
-                    if (building) {
-                        building.roofType = type;
-                    }
-                }
+                state.isPlacing = true;
             }),
 
         setRoofTypeForBuilding: (id, type) =>
