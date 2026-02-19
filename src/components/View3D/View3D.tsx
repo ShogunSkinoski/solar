@@ -38,10 +38,11 @@ function syncBuildings(
         );
         const wallHeight = storeBldg.roofHeight;
         const roofHeight = storeBldg.roofHeight + storeBldg.ridgeHeight;
+        const rotation = storeBldg.rotation;
         const existing = bm.get(storeBldg.id);
 
         if (existing) {
-            existing.update({ size, wallHeight, roofHeight, position });
+            existing.update({ size, wallHeight, roofHeight, position, rotation });
         } else {
             bm.create({
                 id: storeBldg.id,
@@ -50,6 +51,7 @@ function syncBuildings(
                 size,
                 wallHeight,
                 roofHeight,
+                rotation,
             });
         }
     });

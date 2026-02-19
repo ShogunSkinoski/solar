@@ -11,6 +11,7 @@ export interface CreateBuildingOptions {
     size: BuildingSize;
     wallHeight: number;
     roofHeight: number;
+    rotation: number;
 }
 
 export class BuildingManager {
@@ -32,6 +33,8 @@ export class BuildingManager {
             size: options.size,
             wallHeight: options.wallHeight,
             roofHeight: options.roofHeight,
+            rotation: options.rotation,
+            overhang: 0.3, // Default overhang
             textureManager: this.textureManager,
         };
 

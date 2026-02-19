@@ -20,12 +20,9 @@ export default function Home() {
   return (
     <div className="app-shell">
       <div className="main-content">
-        {/* Left sidebar */}
         <Sidebar />
 
-        {/* Viewport panels */}
         <div className="viewports">
-          {/* Plan View (2D) */}
           <div className="panel panel-plan">
             <div className="panel-header">
               <span>Plan View</span>
@@ -38,7 +35,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right column: 3D View + Elevations */}
           <div className="right-column">
             <div className="panel panel-3d">
               <div className="panel-header">
@@ -51,13 +47,13 @@ export default function Home() {
                 <View3D />
               </div>
             </div>
-
-            <ElevationsPanel />
+            <div className="panel panel-3d">
+              <ElevationsPanel />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom toolbar */}
       <BottomBar />
     </div>
   );

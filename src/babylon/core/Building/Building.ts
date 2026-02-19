@@ -15,6 +15,7 @@ export interface BuildingConfig {
     size: BuildingSize;
     wallHeight: number;
     roofHeight: number;
+    rotation: number;
     overhang: number;
     textureManager?: TextureManager;
 }
@@ -39,6 +40,7 @@ export abstract class Building {
 
         this.rootNode = new TransformNode(`building-${this.id}`, this.scene);
         this.rootNode.position = config.position;
+        this.rootNode.rotation.y = config.rotation;
 
         this.mesh = this.rebuildMesh();
     }
@@ -73,6 +75,10 @@ export abstract class Building {
         if (data.size !== undefined) { this.config.size = data.size; needsRebuild = true; }
         if (data.wallHeight !== undefined) { this.config.wallHeight = data.wallHeight; needsRebuild = true; }
         if (data.roofHeight !== undefined) { this.config.roofHeight = data.roofHeight; needsRebuild = true; }
+        if (data.rotation !== undefined) {
+            this.config.rotation = data.rotation;
+            this.rootNode.rotation.y = data.rotation;
+        }
 
         if (data.position !== undefined) {
             this.config.position = data.position;

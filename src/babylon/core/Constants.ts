@@ -88,6 +88,7 @@ export class PlanViewConstants {
     static DEFAULT_DEPTH = 9;
 
     static GROUND_SIZE = 100;
+    static SNAP_INTERVAL = 0.25;
     static CLEAR_R = 0.12;
     static CLEAR_G = 0.12;
     static CLEAR_B = 0.16;

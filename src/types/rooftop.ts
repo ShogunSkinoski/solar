@@ -21,4 +21,5 @@ export interface Building {
     roofType: RoofType;
     roofHeight: number;
     ridgeHeight: number;
+    rotation: number;
 }

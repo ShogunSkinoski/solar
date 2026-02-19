@@ -51,6 +51,14 @@ export default function PlanView() {
             updateBuildingFootprint(buildingId, newFootprint);
         };
 
+        mgr.onDragEnd = () => {
+        };
+
+        mgr.onRotationUpdate = (id, rotation) => {
+            const { updateBuildingProps } = useRooftopStore.getState();
+            updateBuildingProps(id, { rotation });
+        };
+
         mgr.startRenderLoop();
 
         return () => {

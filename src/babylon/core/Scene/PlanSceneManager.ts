@@ -9,6 +9,7 @@ import {
     Scene,
     StandardMaterial,
     Vector3,
+    DynamicTexture,
 } from "@babylonjs/core";
 import { CameraManager } from "../Camera/CameraManager";
 import { TextureManager } from "../Texture/TextureManager";
@@ -16,7 +17,7 @@ import { HemisphericLightStrategy } from "../Light/HemisphericLightStrategy";
 import { PlanViewConstants as P } from "../Constants";
 import { Building as StoreBuilding, Point2D } from "@/types/rooftop";
 
-type DragType = 'building' | 'corner' | 'midpoint';
+type DragType = 'building' | 'corner' | 'midpoint' | 'rotate';
 
 interface DragState {
     type: DragType;
@@ -24,6 +25,7 @@ interface DragState {
     index: number;
     startWorld: Vector3;
     originalFootprint: Point2D[];
+    startRotation?: number;
 }
 
 export class PlanSceneManager {
@@ -40,6 +42,7 @@ export class PlanSceneManager {
     private matSelected!: StandardMaterial;
     private matCornerHandle!: StandardMaterial;
     private matMidHandle!: StandardMaterial;
+    private matRotationHandle!: StandardMaterial;
 
     private groundMesh!: Mesh;
     private drag: DragState | null = null;
@@ -48,6 +51,7 @@ export class PlanSceneManager {
     public onBuildingClick: ((buildingId: string) => void) | null = null;
     public onBuildingDrag: ((buildingId: string, worldPos: Vector3) => void) | null = null;
     public onFootprintUpdate: ((buildingId: string, footprint: Point2D[]) => void) | null = null;
+    public onRotationUpdate: ((buildingId: string, rotation: number) => void) | null = null;
     public onDragEnd: (() => void) | null = null;
 
     private storeBuildings: StoreBuilding[] = [];
@@ -110,6 +114,10 @@ export class PlanSceneManager {
         this.matMidHandle = new StandardMaterial("planMidH", this.scene);
         this.matMidHandle.diffuseColor = Color3.White();
         this.matMidHandle.specularColor = Color3.Black();
+
+        this.matRotationHandle = new StandardMaterial("planRotH", this.scene);
+        this.matRotationHandle.diffuseColor = new Color3(0.96, 0.65, 0.14); // Orange
+        this.matRotationHandle.specularColor = Color3.Black();
     }
 
 
@@ -135,16 +143,34 @@ export class PlanSceneManager {
             const worldPos = pickResult.pickedPoint;
 
             if (mesh && mesh.metadata?.handleType) {
-                const md = mesh.metadata as { handleType: 'corner' | 'midpoint'; buildingId: string; index: number };
+                const md = mesh.metadata as { handleType: DragType; buildingId: string; index: number };
                 const bldg = this.storeBuildings.find((b) => b.id === md.buildingId);
+
                 if (bldg) {
-                    this.drag = {
-                        type: md.handleType,
-                        buildingId: md.buildingId,
-                        index: md.index,
-                        startWorld: worldPos.clone(),
-                        originalFootprint: bldg.footprint.map((p) => ({ ...p })),
-                    };
+                    if (md.handleType === 'rotate') {
+                        const bounds = this.footprintBounds(bldg.footprint);
+                        const angle = Math.atan2(worldPos.z - bounds.cz, worldPos.x - bounds.cx);
+
+                        this.drag = {
+                            type: 'rotate',
+                            buildingId: md.buildingId,
+                            index: -1,
+                            startWorld: worldPos.clone(),
+                            originalFootprint: [],
+                            startRotation: bldg.rotation || 0,
+                        };
+                        (this.drag as any).center = { x: bounds.cx, y: bounds.cz };
+                        (this.drag as any).startMouseAngle = angle;
+                    } else {
+                        this.drag = {
+                            type: md.handleType,
+                            buildingId: md.buildingId,
+                            index: md.index,
+                            startWorld: worldPos.clone(),
+                            originalFootprint: bldg.footprint.map((p) => ({ ...p })),
+                            startRotation: bldg.rotation || 0,
+                        };
+                    }
                     this.camera.detachControl();
                 }
                 return;
@@ -160,6 +186,7 @@ export class PlanSceneManager {
                         index: -1,
                         startWorld: worldPos.clone(),
                         originalFootprint: bldg.footprint.map((p) => ({ ...p })),
+                        startRotation: bldg.rotation || 0,
                     };
                     this.camera.detachControl();
                 }
@@ -184,12 +211,40 @@ export class PlanSceneManager {
             if (this.drag.type === 'building') {
                 const newFootprint = orig.map(p => ({ x: p.x + dx, y: p.y + dz }));
                 this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
-            } else if (this.drag.type === 'corner') {
-                const newFootprint = this.resizeRectFootprint(orig, this.drag.index, dx, dz);
-                this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
-            } else if (this.drag.type === 'midpoint') {
-                const newFootprint = this.moveEdgeFootprint(orig, this.drag.index, dx, dz);
-                this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
+
+            } else if (this.drag.type === 'rotate') {
+                const center = (this.drag as any).center;
+                const startMouseAngle = (this.drag as any).startMouseAngle;
+                const startRot = this.drag.startRotation || 0;
+
+                const currentMouseAngle = Math.atan2(groundPick.z - center.y, groundPick.x - center.x);
+                const deltaAngle = currentMouseAngle - startMouseAngle;
+
+
+                this.onRotationUpdate?.(this.drag.buildingId, startRot - deltaAngle);
+
+            } else {
+
+                const rot = this.drag.startRotation || 0;
+                const cos = Math.cos(rot);
+                const sin = Math.sin(rot);
+
+                let localDx = dx * cos - dz * sin;
+                let localDz = dx * sin + dz * cos;
+
+                // Apply Snapping
+                if (P.SNAP_INTERVAL > 0) {
+                    localDx = Math.round(localDx / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
+                    localDz = Math.round(localDz / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
+                }
+
+                if (this.drag.type === 'corner') {
+                    const newFootprint = this.resizeRectFootprint(orig, this.drag.index, localDx, localDz);
+                    this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
+                } else if (this.drag.type === 'midpoint') {
+                    const newFootprint = this.moveEdgeFootprint(orig, this.drag.index, localDx, localDz);
+                    this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
+                }
             }
         };
 
@@ -257,13 +312,28 @@ export class PlanSceneManager {
 
         const handleSize = Math.abs(this.camera.orthoRight! - this.camera.orthoLeft!) * 0.012;
 
+        const bounds = this.footprintBounds(fp);
+        const cx = bounds.cx;
+        const cz = bounds.cz;
+        const ang = building.rotation || 0;
+        const cos = Math.cos(ang);
+        const sin = Math.sin(ang);
+
         for (let i = 0; i < fp.length; i++) {
             const h = MeshBuilder.CreateBox(`handle-c-${i}`, {
                 width: handleSize,
                 height: 0.01,
                 depth: handleSize,
             }, this.scene);
-            h.position = new Vector3(fp[i].x, 0.05, fp[i].y);
+
+            const ux = fp[i].x - cx;
+            const uz = fp[i].y - cz;
+
+            const rx = ux * cos + uz * sin;
+            const rz = -ux * sin + uz * cos;
+
+            h.position = new Vector3(cx + rx, 0.05, cz + rz);
+            h.rotation.y = -ang; // Rotate handle mesh itself if desired
             h.material = this.matCornerHandle;
             h.metadata = { handleType: 'corner', buildingId: building.id, index: i };
             this.handleMeshes.push(h);
@@ -274,16 +344,96 @@ export class PlanSceneManager {
             const mx = (fp[i].x + fp[next].x) / 2;
             const my = (fp[i].y + fp[next].y) / 2;
 
+            const ux = mx - cx;
+            const uz = my - cz;
+
+            const rx = ux * cos + uz * sin;
+            const rz = -ux * sin + uz * cos;
+
             const h = MeshBuilder.CreateBox(`handle-m-${i}`, {
                 width: handleSize * 0.85,
                 height: 0.01,
                 depth: handleSize * 0.85,
             }, this.scene);
-            h.position = new Vector3(mx, 0.05, my);
+            h.position = new Vector3(cx + rx, 0.05, cz + rz);
+            h.rotation.y = -ang; // Rotate handle mesh
             h.material = this.matMidHandle;
             h.metadata = { handleType: 'midpoint', buildingId: building.id, index: i };
             this.handleMeshes.push(h);
         }
+
+        const iconSize = 1.5;
+        const h = MeshBuilder.CreatePlane(`handle-rot`, {
+            size: iconSize,
+        }, this.scene);
+
+        const S = 256;
+        const half = S / 2;
+        const dt = new DynamicTexture("rotIconTex", { width: S, height: S }, this.scene, true);
+        dt.hasAlpha = true;
+        const ctx = dt.getContext() as unknown as CanvasRenderingContext2D;
+        ctx.clearRect(0, 0, S, S);
+
+        // Yellow circle background
+        ctx.beginPath();
+        ctx.arc(half, half, half - 8, 0, Math.PI * 2);
+        ctx.fillStyle = "#F0B800";
+        ctx.fill();
+
+        // Circular arrow arc (dark, clockwise, leaving gap for arrowhead)
+        const arcRadius = 60;
+        const startAngle = -Math.PI * 0.65;
+        const endAngle = Math.PI * 0.85;
+        ctx.beginPath();
+        ctx.arc(half, half, arcRadius, startAngle, endAngle);
+        ctx.strokeStyle = "#1a1a1a";
+        ctx.lineWidth = 26;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Arrowhead at the end of the arc
+        const arrowTip = {
+            x: half + arcRadius * Math.cos(endAngle),
+            y: half + arcRadius * Math.sin(endAngle),
+        };
+        const tangentAngle = endAngle + Math.PI / 2;
+        const arrowLen = 32;
+        ctx.beginPath();
+        ctx.moveTo(arrowTip.x, arrowTip.y);
+        ctx.lineTo(
+            arrowTip.x + arrowLen * Math.cos(tangentAngle - 0.5),
+            arrowTip.y + arrowLen * Math.sin(tangentAngle - 0.5)
+        );
+        ctx.moveTo(arrowTip.x, arrowTip.y);
+        ctx.lineTo(
+            arrowTip.x + arrowLen * Math.cos(tangentAngle + 0.5),
+            arrowTip.y + arrowLen * Math.sin(tangentAngle + 0.5)
+        );
+        ctx.strokeStyle = "#1a1a1a";
+        ctx.lineWidth = 26;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        dt.update();
+
+        const mat = new StandardMaterial("rotIconMat", this.scene);
+        mat.diffuseTexture = dt;
+        mat.useAlphaFromDiffuseTexture = true;
+        mat.emissiveColor = Color3.White();
+        mat.disableLighting = true;
+        h.material = mat;
+        h.rotation.x = Math.PI / 2;
+        h.rotation.y = -ang + Math.PI;
+
+        // Place handle on the negative Z side of the building (outside the footprint)
+        const zOffset = bounds.d / 2 + 2;
+        const rx = -zOffset * Math.sin(ang);
+        const rz = -zOffset * Math.cos(ang);
+
+        h.position = new Vector3(cx + rx, 0.05, cz + rz);
+        h.metadata = { handleType: 'rotate', buildingId: building.id };
+
+        this.handleMeshes.push(h);
     }
 
 
@@ -320,6 +470,9 @@ export class PlanSceneManager {
             mesh.position.y = 0.01;
             mesh.scaling.x = bounds.w;
             mesh.scaling.z = bounds.d;
+
+            const ang = b.rotation || 0;
+            mesh.rotation.y = ang;
 
             mesh.material = isSelected ? this.matSelected : this.matDefault;
             mesh.renderOutline = false;

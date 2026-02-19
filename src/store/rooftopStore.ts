@@ -13,7 +13,7 @@ interface RooftopState {
 interface RooftopActions {
     addBuilding: (footprint: Point2D[]) => void;
     updateBuildingFootprint: (id: string, footprint: Point2D[]) => void;
-    updateBuildingProps: (id: string, patch: Partial<Pick<Building, 'roofHeight' | 'ridgeHeight' | 'roofType'>>) => void;
+    updateBuildingProps: (id: string, patch: Partial<Pick<Building, 'roofHeight' | 'ridgeHeight' | 'roofType' | 'rotation'>>) => void;
     selectBuilding: (id: string | null) => void;
     setActiveRoofType: (type: RoofType) => void;
     setRoofTypeForBuilding: (id: string, type: RoofType) => void;
@@ -44,6 +44,7 @@ export const useRooftopStore = create<RooftopStore>()(
                     ridgeHeight: 0.5,
                     width: 0,
                     heigth: 0,
+                    rotation: 0,
                 });
                 state.selectedBuildingId = id;
                 state.isPlacing = false;
