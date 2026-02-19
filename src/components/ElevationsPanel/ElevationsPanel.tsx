@@ -3,7 +3,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { useRooftopStore } from '@/store/rooftopStore';
 import { Building } from '@/types/rooftop';
-import { SceneConstants } from '@/babylon/core/Constants';
 
 type Direction = 'West' | 'North' | 'East' | 'South';
 const DIRECTIONS: Direction[] = ['West', 'North', 'East', 'South'];
@@ -212,16 +211,14 @@ export default function ElevationsPanel() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [activeDir, setActiveDir] = useState<Direction>('North');
 
-    const { buildings, selectedBuildingId, updateBuildingProps, planViewSize } = useRooftopStore();
+    const { buildings, selectedBuildingId, updateBuildingProps } = useRooftopStore();
     const building = buildings.find((b) => b.id === selectedBuildingId) ?? null;
 
     const footprintW = building
-        ? ((Math.max(...building.footprint.map(p => p.x)) - Math.min(...building.footprint.map(p => p.x)))
-            / planViewSize.width) * SceneConstants.GROUND_WIDTH
+        ? Math.max(...building.footprint.map(p => p.x)) - Math.min(...building.footprint.map(p => p.x))
         : 6;
     const footprintD = building
-        ? ((Math.max(...building.footprint.map(p => p.y)) - Math.min(...building.footprint.map(p => p.y)))
-            / planViewSize.height) * SceneConstants.GROUND_HEIGTH
+        ? Math.max(...building.footprint.map(p => p.y)) - Math.min(...building.footprint.map(p => p.y))
         : 6;
 
     const redrawRef = useRef<() => void>(() => { });

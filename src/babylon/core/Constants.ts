@@ -10,7 +10,7 @@ export class CameraConstants {
     static ORTHO_BETA = 0;
     static ORTHO_RADIUS = 50;
 
-    static PERSPECTIVE_ALPHA = -Math.PI / 2;
+    static PERSPECTIVE_ALPHA = 0;
     static PERSPECTIVE_BETA = Math.PI / 3;
     static PERSPECTIVE_RADIUS = 50;
 
@@ -69,4 +69,26 @@ export class AxisHelperConstants {
 
 export class CoordinateMapperConstants {
     static MIN_SIZE = 0.1;
+}
+
+export class PlanViewConstants {
+    static FOOTPRINT_R = 0.7;
+    static FOOTPRINT_G = 0.4;
+    static FOOTPRINT_B = 0.3;
+
+    static SELECTED_R = 0.8;
+    static SELECTED_G = 0.5;
+    static SELECTED_B = 0.35;
+
+    static OUTLINE_R = 0.3;
+    static OUTLINE_G = 0.7;
+    static OUTLINE_B = 1.0;
+
+    static DEFAULT_WIDTH = 12;
+    static DEFAULT_DEPTH = 9;
+
+    static GROUND_SIZE = 100;
+    static CLEAR_R = 0.12;
+    static CLEAR_G = 0.12;
+    static CLEAR_B = 0.16;
 }

@@ -15,6 +15,7 @@ export interface BuildingConfig {
     size: BuildingSize;
     wallHeight: number;
     roofHeight: number;
+    overhang: number;
     textureManager?: TextureManager;
 }
 
@@ -44,10 +45,7 @@ export abstract class Building {
 
     protected abstract buildMesh(): Mesh;
 
-    /**
-     * Returns the shared wall material from TextureManager, or creates a
-     * fallback material if no TextureManager was provided.
-     */
+
     protected getWallMaterial(): StandardMaterial {
         if (this.textureManager) {
             return this.textureManager.getMaterial('wall');
@@ -58,10 +56,7 @@ export abstract class Building {
         return mat;
     }
 
-    /**
-     * Returns the shared roof material from TextureManager, or creates a
-     * fallback material if no TextureManager was provided.
-     */
+
     protected getRoofMaterial(): StandardMaterial {
         if (this.textureManager) {
             return this.textureManager.getMaterial('roof');
@@ -118,7 +113,6 @@ export abstract class Building {
     public dispose(): void {
         this.mesh.dispose();
         this.rootNode.dispose();
-        // Note: shared materials owned by TextureManager are NOT disposed here.
     }
 
     private rebuildMesh(): Mesh {

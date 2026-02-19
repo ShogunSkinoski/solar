@@ -3,15 +3,14 @@
 import { useEffect, useRef } from 'react';
 import { SceneManager } from '@/babylon/core/Scene/SceneManager';
 import { BuildingManager } from '@/babylon/core/Building/BuildingManager';
-import { CoordinateMapper } from '@/babylon/core/Scene/CoordinateMapper';
 import { useRooftopStore } from '@/store/rooftopStore';
 import { Building } from '@/types/rooftop';
+import { Vector3 } from '@babylonjs/core';
 
 function syncBuildings(
     buildings: Building[],
     selectedBuildingId: string | null,
-    bm: BuildingManager,
-    mapper: CoordinateMapper
+    bm: BuildingManager
 ): void {
     const storeIds = new Set(buildings.map((b) => b.id));
     bm.getAll().forEach((b) => {
@@ -21,8 +20,22 @@ function syncBuildings(
     buildings.forEach((storeBldg) => {
         if (storeBldg.footprint.length < 3) return;
 
-        const size = mapper.size(storeBldg.footprint);
-        const position = mapper.centroid(storeBldg.footprint);
+        const xs = storeBldg.footprint.map((p) => p.x);
+        const ys = storeBldg.footprint.map((p) => p.y);
+        const minX = Math.min(...xs);
+        const maxX = Math.max(...xs);
+        const minY = Math.min(...ys);
+        const maxY = Math.max(...ys);
+
+        const size = {
+            width: Math.max(maxX - minX, 0.1),
+            depth: Math.max(maxY - minY, 0.1),
+        };
+        const position = new Vector3(
+            (minX + maxX) / 2,
+            0,
+            (minY + maxY) / 2
+        );
         const wallHeight = storeBldg.roofHeight;
         const roofHeight = storeBldg.roofHeight + storeBldg.ridgeHeight;
         const existing = bm.get(storeBldg.id);
@@ -52,13 +65,13 @@ export default function View3D() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const sceneManagerRef = useRef<SceneManager | null>(null);
 
-    const { buildings, selectedBuildingId, planViewSize } = useRooftopStore();
+    const { buildings, selectedBuildingId } = useRooftopStore();
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const manager = new SceneManager(canvas, 'perspective', planViewSize);
+        const manager = new SceneManager(canvas, 'perspective');
         manager.initialize();
         sceneManagerRef.current = manager;
 
@@ -75,20 +88,15 @@ export default function View3D() {
     }, []);
 
     useEffect(() => {
-        sceneManagerRef.current?.updateCanvasSize(planViewSize.width, planViewSize.height);
-    }, [planViewSize]);
-
-    useEffect(() => {
         const manager = sceneManagerRef.current;
         if (!manager) return;
 
         syncBuildings(
             buildings,
             selectedBuildingId,
-            manager.getBuildingManager(),
-            manager.getMapper()
+            manager.getBuildingManager()
         );
-    }, [buildings, selectedBuildingId, planViewSize]);
+    }, [buildings, selectedBuildingId]);
 
     return (
         <canvas

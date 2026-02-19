@@ -10,6 +10,8 @@ export class GableRoofBuilding extends Building {
 
     protected buildMesh(): Mesh {
         const { size, wallHeight, roofHeight } = this.config;
+        const overhang = this.config.overhang ?? 0.5;
+
         const w = size.width;
         const d = size.depth;
 
@@ -21,38 +23,40 @@ export class GableRoofBuilding extends Building {
         base.position.y = wallHeight / 2;
         base.material = this.getWallMaterial();
 
-        const hw = w / 2;
-        const hd = d / 2;
+        const hw = w / 2 + overhang;  // X overhang (gable ends)
+        const hd = d / 2 + overhang;  // Z overhang (eaves)
+        const roofBase = wallHeight / 2;
 
         const positions = [
-            -hw, wallHeight / 2 + 0.1, -hd,  // 0 front-left  base
-            hw, wallHeight / 2 + 0.1, -hd,  // 1 front-right base
-            hw, wallHeight / 2 + 0.1, hd,  // 2 back-right  base
-            -hw, wallHeight / 2 + 0.1, hd,  // 3 back-left   base
-            0, roofHeight, -hd,  // 4 front ridge
-            0, roofHeight, hd,  // 5 back ridge
+            -hw, roofBase, -hd,  // 0 front-left
+            hw, roofBase, -hd,  // 1 front-right
+            hw, roofBase, hd,  // 2 back-right
+            -hw, roofBase, hd,  // 3 back-left
+            -hw, roofHeight, 0,  // 4 left ridge
+            hw, roofHeight, 0,  // 5 right ridge
         ];
 
         const indices = [
-            // front gable face (outward normal = -Z)
-            0, 1, 4,
-            // back gable face (outward normal = +Z)
-            3, 5, 2,
-            // left slope (outward normal = -X)
-            0, 5, 3,
+            // Left gable (facing -X)
+            0, 4, 3,
+            // Right gable (facing +X)
+            1, 5, 2,
+            // Front slope (facing -Z)
+            0, 5, 1,
             0, 4, 5,
-            // right slope (outward normal = +X)
-            1, 2, 5,
-            1, 5, 4,
+            // Back slope (facing +Z)
+            3, 4, 5,
+            3, 5, 2,
         ];
 
-        const uvs: number[] = [];
-        for (let i = 0; i < positions.length; i += 3) {
-            uvs.push(
-                (positions[i] + hw) / w,
-                (positions[i + 2] + hd) / d
-            );
-        }
+        const uvs: number[] = [
+            0, 0,   // 0
+            1, 0,   // 1
+            1, 1,   // 2
+            0, 1,   // 3
+            0, 0.5, // 4
+            1, 0.5, // 5
+        ];
 
         const normals: number[] = [];
         VertexData.ComputeNormals(positions, indices, normals);
@@ -67,6 +71,7 @@ export class GableRoofBuilding extends Building {
         vd.applyToMesh(prism);
         prism.parent = base;
         prism.material = this.getRoofMaterial();
+        prism.material.backFaceCulling = false;
 
         base.name = `gable-roof-${this.id}`;
         return base;
