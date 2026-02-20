@@ -261,8 +261,14 @@ export default function ElevationsPanel() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [activeDir, setActiveDir] = useState<Direction>('North');
 
-    const { buildings, selectedBuildingId, updateBuildingProps } = useRooftopStore();
+    const { buildings, selectedBuildingId, updateBuildingProps, deleteBuilding } = useRooftopStore();
     const building = buildings.find((b) => b.id === selectedBuildingId) ?? null;
+
+    const handleDelete = () => {
+        if (selectedBuildingId) {
+            deleteBuilding(selectedBuildingId);
+        }
+    };
 
     const footprintW = building
         ? Math.max(...building.footprint.map(p => p.x)) - Math.min(...building.footprint.map(p => p.x))
@@ -433,6 +439,16 @@ export default function ElevationsPanel() {
             <div className="panel-header">
                 <span>Elevations</span>
                 <div className="panel-header-actions">
+                    {building && (
+                        <button
+                            className="panel-header-btn"
+                            title="Delete Building"
+                            onClick={handleDelete}
+                            style={{ marginRight: '8px', color: '#ff4d4f' }}
+                        >
+                            🗑
+                        </button>
+                    )}
                     <button className="panel-header-btn" title="Expand">⤢</button>
                 </div>
             </div>

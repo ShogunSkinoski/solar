@@ -7,7 +7,7 @@ const ROOF_TYPES = [
     { type: 'gable' as const, label: 'Gable', icon: '⌂' },
 ];
 
-const SECTION_LABELS = ['Roofs', 'Extensions', 'Dormers', 'Ground', 'Misc.'];
+const SECTION_LABELS = ['Roofs'];
 
 export default function Sidebar() {
     const { activeRoofType, setActiveRoofType } = useRooftopStore();
@@ -18,7 +18,7 @@ export default function Sidebar() {
                 <div key={section} className="sidebar-section">
                     <div className="sidebar-section-label">{section}</div>
                     {section === 'Roofs' ? (
-                        <div className="sidebar-items">
+                        <div className="sidebar-items tour-roof-types">
                             {ROOF_TYPES.map(({ type, label, icon }) => (
                                 <button
                                     key={type}

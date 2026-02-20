@@ -15,6 +15,10 @@ const View3D = dynamic(() => import('@/components/View3D/View3D'), {
   loading: () => <div style={{ flex: 1, background: '#111' }} />,
 });
 
+const InteractiveTutorial = dynamic(() => import('@/components/InteractiveTutorial/InteractiveTutorial'), {
+  ssr: false,
+});
+
 export default function Home() {
   return (
     <div className="app-shell">
@@ -22,7 +26,7 @@ export default function Home() {
         <Sidebar />
 
         <div className="viewports">
-          <div className="panel panel-plan">
+          <div className="panel panel-plan tour-plan-view">
             <div className="panel-header">
               <span>Plan View</span>
               <div className="panel-header-actions">
@@ -35,7 +39,7 @@ export default function Home() {
           </div>
 
           <div className="right-column">
-            <div className="panel panel-3d">
+            <div className="panel panel-3d tour-3d-view">
               <div className="panel-header">
                 <span>3D View</span>
                 <div className="panel-header-actions">
@@ -46,14 +50,14 @@ export default function Home() {
                 <View3D />
               </div>
             </div>
-            <div className="panel panel-3d">
+            <div className="panel panel-3d tour-elevations-panel">
               <ElevationsPanel />
             </div>
           </div>
         </div>
       </div>
 
-      <BottomBar />
+      <InteractiveTutorial />
     </div>
   );
 }

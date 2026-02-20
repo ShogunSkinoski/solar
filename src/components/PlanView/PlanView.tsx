@@ -19,6 +19,7 @@ export default function PlanView() {
         addBuilding,
         selectBuilding,
         updateBuildingFootprint,
+        deleteBuilding,
     } = useRooftopStore();
 
     useEffect(() => {
@@ -93,6 +94,20 @@ export default function PlanView() {
         const ro = new ResizeObserver(resize);
         ro.observe(container);
         return () => ro.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                const state = useRooftopStore.getState();
+                if (state.selectedBuildingId) {
+                    state.deleteBuilding(state.selectedBuildingId);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
     return (

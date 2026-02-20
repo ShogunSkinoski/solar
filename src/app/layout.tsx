@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Solar Rooftop Planner',
+  title: 'Case Study',
   description: 'Dual-viewport rooftop modeling interface for solar design',
 };
 

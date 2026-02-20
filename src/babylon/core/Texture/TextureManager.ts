@@ -34,7 +34,7 @@ export class TextureManager {
 
     public getSatelliteTexture(): Texture {
         if (!this.babylonTextures.has('satellite')) {
-            const tex = new Texture("https://playground.babylonjs.com/textures/earth.jpg", this.scene);
+            const tex = new Texture("/neighborhood.jpg", this.scene);
             this.babylonTextures.set('satellite', tex);
         }
         return this.babylonTextures.get('satellite')!;
