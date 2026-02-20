@@ -134,7 +134,7 @@ export class PlanSceneManager {
 
         this.groundMesh.position.y = 0;
         const mat = new StandardMaterial("planGroundMat", this.scene);
-        mat.diffuseTexture = this.textureManager.getGridTexture("planGrid");
+        mat.diffuseTexture = this.textureManager.getSatelliteTexture();
         mat.specularColor = Color3.Black();
         this.groundMesh.material = mat;
     }

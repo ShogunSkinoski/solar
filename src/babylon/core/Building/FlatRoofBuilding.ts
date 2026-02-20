@@ -11,8 +11,10 @@ export class FlatRoofBuilding extends Building {
     protected buildMesh(): Mesh {
         const { size, wallHeight } = this.config;
 
+        const group = new Mesh(`flat-roof-group-${this.id}`, this.scene);
+
         const box = MeshBuilder.CreateBox(
-            `flat-roof-${this.id}`,
+            `flat-roof-base-${this.id}`,
             {
                 width: size.width,
                 height: wallHeight,
@@ -20,9 +22,19 @@ export class FlatRoofBuilding extends Building {
             },
             this.scene
         );
-
         box.position.y = wallHeight / 2;
         box.material = this.getWallMaterial();
-        return box;
+        box.parent = group;
+
+        const roof = MeshBuilder.CreatePlane(`flat-roof-top-${this.id}`, {
+            width: size.width,
+            height: size.depth,
+        }, this.scene);
+        roof.rotation.x = Math.PI / 2;
+        roof.position.y = wallHeight + 0.01;
+        roof.material = this.getRoofMaterial();
+        roof.parent = group;
+
+        return group;
     }
 }

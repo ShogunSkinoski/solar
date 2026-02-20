@@ -74,7 +74,7 @@ export class SceneManager {
 
         ground.position.y = 0;
         const groundMat = new StandardMaterial('groundMat', this.scene);
-        groundMat.diffuseTexture = this.textureManager.getGridTexture();
+        groundMat.diffuseTexture = this.textureManager.getSatelliteTexture();
         groundMat.specularColor = new Color3(0, 0, 0);
         ground.material = groundMat;
         ground.receiveShadows = true;

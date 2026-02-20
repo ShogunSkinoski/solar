@@ -1,4 +1,4 @@
-import { Color3, Mesh, Scene, StandardMaterial, TransformNode, Vector3 } from "@babylonjs/core";
+import { Color3, Mesh, Scene, StandardMaterial, Texture, TransformNode, Vector3 } from "@babylonjs/core";
 import { TextureManager } from "../Texture/TextureManager";
 
 export type RoofType = 'flat' | 'gable';
@@ -43,6 +43,7 @@ export abstract class Building {
         this.rootNode.rotation.y = config.rotation;
 
         this.mesh = this.rebuildMesh();
+        this.updateRoofTextureMapping();
     }
 
     protected abstract buildMesh(): Mesh;
@@ -60,13 +61,35 @@ export abstract class Building {
 
 
     protected getRoofMaterial(): StandardMaterial {
-        if (this.textureManager) {
-            return this.textureManager.getMaterial('roof');
-        }
         const mat = new StandardMaterial(`mat-roof-${this.id}`, this.scene);
-        mat.diffuseColor = new Color3(0.55, 0.35, 0.28);
-        mat.specularColor = new Color3(0.05, 0.05, 0.05);
+        if (this.textureManager) {
+            mat.diffuseTexture = this.textureManager.getSatelliteTexture().clone();
+            mat.specularColor = new Color3(0.05, 0.05, 0.05);
+        } else {
+            mat.diffuseColor = new Color3(0.55, 0.35, 0.28);
+            mat.specularColor = new Color3(0.05, 0.05, 0.05);
+        }
         return mat;
+    }
+
+    protected updateRoofTextureMapping(): void {
+        const mesh = this.getMesh();
+        if (!mesh) return;
+        const roofMeshes = [mesh, ...mesh.getChildMeshes()];
+        roofMeshes.forEach(m => {
+            if (m.material instanceof StandardMaterial && m.material.diffuseTexture instanceof Texture) {
+                const tex = m.material.diffuseTexture as Texture;
+                const pos = this.config.position;
+                const w = this.config.size.width;
+                const d = this.config.size.depth;
+                tex.uScale = w / 100;
+                tex.vScale = d / 100;
+
+                // Babylon Z is forward. Ground 100x100 is -50 to 50 on X and Z.
+                tex.uOffset = (pos.x - w / 2 + 50) / 100;
+                tex.vOffset = (pos.z - d / 2 + 50) / 100;
+            }
+        });
     }
 
     public update(data: Partial<Omit<BuildingConfig, 'id' | 'scene'>>): void {
@@ -89,6 +112,8 @@ export abstract class Building {
             this.mesh.dispose();
             this.mesh = this.rebuildMesh();
         }
+
+        this.updateRoofTextureMapping();
     }
 
     public setSelected(selected: boolean): void {

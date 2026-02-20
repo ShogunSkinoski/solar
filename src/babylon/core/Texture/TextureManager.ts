@@ -1,4 +1,4 @@
-import { Color3, DynamicTexture, Scene, StandardMaterial } from "@babylonjs/core";
+import { Color3, DynamicTexture, Scene, StandardMaterial, Texture } from "@babylonjs/core";
 import { GridTexture } from "./GridTexture";
 
 export type MaterialKey = 'wall' | 'roof';
@@ -17,6 +17,7 @@ const MATERIAL_DEFS: Record<MaterialKey, { diffuse: [number, number, number]; sp
 export class TextureManager {
     private scene: Scene;
     private textures: Map<string, GridTexture> = new Map();
+    private babylonTextures: Map<string, Texture> = new Map();
     private materials: Map<MaterialKey, StandardMaterial> = new Map();
 
     constructor(scene: Scene) {
@@ -29,6 +30,14 @@ export class TextureManager {
             this.textures.set(name, new GridTexture(this.scene, size));
         }
         return this.textures.get(name)!.getTexture();
+    }
+
+    public getSatelliteTexture(): Texture {
+        if (!this.babylonTextures.has('satellite')) {
+            const tex = new Texture("https://playground.babylonjs.com/textures/earth.jpg", this.scene);
+            this.babylonTextures.set('satellite', tex);
+        }
+        return this.babylonTextures.get('satellite')!;
     }
 
     public getMaterial(key: MaterialKey): StandardMaterial {
@@ -45,6 +54,9 @@ export class TextureManager {
     public dispose(): void {
         this.textures.forEach(t => t.dispose());
         this.textures.clear();
+
+        this.babylonTextures.forEach(t => t.dispose());
+        this.babylonTextures.clear();
 
         this.materials.forEach(m => m.dispose());
         this.materials.clear();
