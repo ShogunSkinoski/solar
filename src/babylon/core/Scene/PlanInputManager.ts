@@ -6,7 +6,7 @@ import {
 } from "@babylonjs/core";
 import { Building as StoreBuilding, Point2D } from "@/types/rooftop";
 import { GeometryUtils } from "../Math/GeometryUtils";
-import { PlanMeshBuilder } from "./PlanMeshBuilder";
+import { PlanMeshBuilder } from "../Building/PlanMeshBuilder";
 
 export type DragType = 'building' | 'corner' | 'midpoint' | 'rotate';
 
