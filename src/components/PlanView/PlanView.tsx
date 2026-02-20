@@ -14,6 +14,8 @@ export default function PlanView() {
     const {
         buildings,
         selectedBuildingId,
+        activeRoofType,
+        isPlacing,
         addBuilding,
         selectBuilding,
         updateBuildingFootprint,
@@ -71,6 +73,10 @@ export default function PlanView() {
     useEffect(() => {
         managerRef.current?.syncBuildings(buildings, selectedBuildingId);
     }, [buildings, selectedBuildingId]);
+
+    useEffect(() => {
+        managerRef.current?.setPlacementMode(isPlacing, activeRoofType);
+    }, [isPlacing, activeRoofType]);
 
     useEffect(() => {
         const container = containerRef.current;

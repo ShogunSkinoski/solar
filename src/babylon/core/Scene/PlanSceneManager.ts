@@ -15,7 +15,7 @@ import { CameraManager } from "../Camera/CameraManager";
 import { TextureManager } from "../Texture/TextureManager";
 import { HemisphericLightStrategy } from "../Light/HemisphericLightStrategy";
 import { PlanViewConstants as P } from "../Constants";
-import { Building as StoreBuilding, Point2D } from "@/types/rooftop";
+import { Building as StoreBuilding, Point2D, RoofType } from "@/types/rooftop";
 
 type DragType = 'building' | 'corner' | 'midpoint' | 'rotate';
 
@@ -46,6 +46,10 @@ export class PlanSceneManager {
 
     private groundMesh!: Mesh;
     private drag: DragState | null = null;
+
+    private previewMesh: Mesh | null = null;
+    private isPlacing: boolean = false;
+    private previewRoofType: RoofType = 'flat';
 
     public onGroundClick: ((worldPos: Vector3) => void) | null = null;
     public onBuildingClick: ((buildingId: string) => void) | null = null;
@@ -199,9 +203,20 @@ export class PlanSceneManager {
         };
 
         this.scene.onPointerMove = () => {
-            if (!this.drag) return;
-
             const groundPick = this.pickGround();
+
+            if (this.isPlacing && this.previewMesh) {
+                if (groundPick) {
+                    this.previewMesh.position.x = groundPick.x;
+                    this.previewMesh.position.z = groundPick.z;
+                    this.previewMesh.position.y = 0.02;
+                    this.previewMesh.isVisible = true;
+                } else {
+                    this.previewMesh.isVisible = false;
+                }
+            }
+
+            if (!this.drag) return;
             if (!groundPick) return;
 
             const orig = this.drag.originalFootprint;
@@ -679,6 +694,64 @@ export class PlanSceneManager {
 
     public resize(): void {
         this.engine.resize();
+    }
+
+    public setPlacementMode(isPlacing: boolean, roofType: RoofType): void {
+        this.isPlacing = isPlacing;
+        this.previewRoofType = roofType;
+
+        if (this.isPlacing) {
+            if (!this.previewMesh || this.previewMesh.metadata?.roofType !== roofType) {
+                if (this.previewMesh) this.previewMesh.dispose();
+                this.previewMesh = this.createPreviewMesh(roofType);
+            }
+            this.previewMesh.isVisible = false;
+        } else {
+            if (this.previewMesh) {
+                this.previewMesh.dispose();
+                this.previewMesh = null;
+            }
+        }
+    }
+
+    private createPreviewMesh(roofType: RoofType): Mesh {
+        const mesh = MeshBuilder.CreateGround("preview-mesh", {
+            width: 1, height: 1,
+        }, this.scene);
+        mesh.scaling.x = P.DEFAULT_WIDTH;
+        mesh.scaling.z = P.DEFAULT_DEPTH;
+
+        const mat = new StandardMaterial("previewMat", this.scene);
+        mat.diffuseColor = new Color3(1, 1, 1);
+        mat.alpha = 0.5;
+        mat.emissiveColor = new Color3(0.2, 0.2, 0.2);
+        mesh.material = mat;
+        mesh.metadata = { roofType };
+        mesh.isPickable = false;
+
+        const border = MeshBuilder.CreateLines("preview-border", {
+            points: [
+                new Vector3(-0.5, 0.05, -0.5),
+                new Vector3(0.5, 0.05, -0.5),
+                new Vector3(0.5, 0.05, 0.5),
+                new Vector3(-0.5, 0.05, 0.5),
+                new Vector3(-0.5, 0.05, -0.5),
+            ]
+        }, this.scene);
+        border.color = Color3.Black();
+        border.parent = mesh;
+        border.isPickable = false;
+
+        if (roofType === 'gable') {
+            const ridge = MeshBuilder.CreateLines("preview-ridge", {
+                points: [new Vector3(-0.5, 0.05, 0), new Vector3(0.5, 0.05, 0)],
+            }, this.scene);
+            ridge.color = Color3.Black();
+            ridge.parent = mesh;
+            ridge.isPickable = false;
+        }
+
+        return mesh;
     }
 
     public getScene(): Scene {
