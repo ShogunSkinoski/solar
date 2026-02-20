@@ -5,7 +5,6 @@ import Sidebar from '@/components/Sidebar/Sidebar';
 import BottomBar from '@/components/BottomBar/BottomBar';
 import ElevationsPanel from '@/components/ElevationsPanel/ElevationsPanel';
 
-// Dynamically import canvas/BabylonJS components to avoid SSR issues
 const PlanView = dynamic(() => import('@/components/PlanView/PlanView'), {
   ssr: false,
   loading: () => <div style={{ flex: 1, background: '#2a3a2a' }} />,

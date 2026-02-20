@@ -204,11 +204,11 @@ export class PlanSceneManager {
             const groundPick = this.pickGround();
             if (!groundPick) return;
 
-            const dx = groundPick.x - this.drag.startWorld.x;
-            const dz = groundPick.z - this.drag.startWorld.z;
             const orig = this.drag.originalFootprint;
 
             if (this.drag.type === 'building') {
+                const dx = groundPick.x - this.drag.startWorld.x;
+                const dz = groundPick.z - this.drag.startWorld.z;
                 const newFootprint = orig.map(p => ({ x: p.x + dx, y: p.y + dz }));
                 this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
 
@@ -220,29 +220,33 @@ export class PlanSceneManager {
                 const currentMouseAngle = Math.atan2(groundPick.z - center.y, groundPick.x - center.x);
                 const deltaAngle = currentMouseAngle - startMouseAngle;
 
-
                 this.onRotationUpdate?.(this.drag.buildingId, startRot - deltaAngle);
 
             } else {
-
                 const rot = this.drag.startRotation || 0;
                 const cos = Math.cos(rot);
                 const sin = Math.sin(rot);
 
-                let localDx = dx * cos - dz * sin;
-                let localDz = dx * sin + dz * cos;
+                const toWorld = (px: number, py: number, cx: number, cz: number) => {
+                    const ux = px - cx;
+                    const uz = py - cz;
+                    const rx = ux * cos + uz * sin;
+                    const rz = -ux * sin + uz * cos;
+                    return { x: cx + rx, z: cz + rz };
+                };
 
-                // Apply Snapping
-                if (P.SNAP_INTERVAL > 0) {
-                    localDx = Math.round(localDx / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
-                    localDz = Math.round(localDz / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
-                }
+                const toLocalDir = (dx: number, dz: number) => {
+                    return {
+                        x: dx * cos - dz * sin,
+                        z: dx * sin + dz * cos
+                    };
+                };
 
                 if (this.drag.type === 'corner') {
-                    const newFootprint = this.resizeRectFootprint(orig, this.drag.index, localDx, localDz);
+                    const newFootprint = this.resizeCornerAnchored(orig, this.drag.index, groundPick, this.drag.startWorld, rot, toWorld, toLocalDir);
                     this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
                 } else if (this.drag.type === 'midpoint') {
-                    const newFootprint = this.moveEdgeFootprint(orig, this.drag.index, localDx, localDz);
+                    const newFootprint = this.resizeEdgeAnchored(orig, this.drag.index, groundPick, this.drag.startWorld, rot, toWorld, toLocalDir);
                     this.onFootprintUpdate?.(this.drag.buildingId, newFootprint);
                 }
             }
@@ -257,37 +261,147 @@ export class PlanSceneManager {
         };
     }
 
+    private resizeCornerAnchored(
+        orig: Point2D[],
+        cornerIndex: number,
+        groundPick: Vector3,
+        startWorld: Vector3,
+        rot: number,
+        toWorld: (px: number, py: number, cx: number, cz: number) => { x: number, z: number },
+        toLocalDir: (dx: number, dz: number) => { x: number, z: number }
+    ): Point2D[] {
+        const bounds = this.footprintBounds(orig);
+        const oppIndex = (cornerIndex + 2) % 4;
 
-    private resizeRectFootprint(orig: Point2D[], cornerIndex: number, dx: number, dz: number): Point2D[] {
-        const opposite = (cornerIndex + 2) % 4;
-        const ox = orig[opposite].x;
-        const oy = orig[opposite].y;
+        const oppLocal = orig[oppIndex];
+        const oppWorld = toWorld(oppLocal.x, oppLocal.y, bounds.cx, bounds.cz);
 
-        const newX = orig[cornerIndex].x + dx;
-        const newY = orig[cornerIndex].y + dz;
+        const cornerLocal = orig[cornerIndex];
+        const cornerWorldStart = toWorld(cornerLocal.x, cornerLocal.y, bounds.cx, bounds.cz);
 
-        const minX = Math.min(newX, ox);
-        const maxX = Math.max(newX, ox);
-        const minY = Math.min(newY, oy);
-        const maxY = Math.max(newY, oy);
+        const deltaMouseX = groundPick.x - startWorld.x;
+        const deltaMouseZ = groundPick.z - startWorld.z;
+
+        const targetCornerWorldX = cornerWorldStart.x + deltaMouseX;
+        const targetCornerWorldZ = cornerWorldStart.z + deltaMouseZ;
+
+        let dxWorld = targetCornerWorldX - oppWorld.x;
+        let dzWorld = targetCornerWorldZ - oppWorld.z;
+
+        let localDir = toLocalDir(dxWorld, dzWorld);
+
+        if (P.SNAP_INTERVAL > 0) {
+            localDir.x = Math.round(localDir.x / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
+            localDir.z = Math.round(localDir.z / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
+        }
+
+        const minSize = 0.5;
+        if (Math.abs(localDir.x) < minSize) localDir.x = Math.sign(localDir.x || 1) * minSize;
+        if (Math.abs(localDir.z) < minSize) localDir.z = Math.sign(localDir.z || 1) * minSize;
+
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        const newDragWorldX = oppWorld.x + (localDir.x * cos + localDir.z * sin);
+        const newDragWorldZ = oppWorld.z + (-localDir.x * sin + localDir.z * cos);
+
+        const newCx = (oppWorld.x + newDragWorldX) / 2;
+        const newCz = (oppWorld.z + newDragWorldZ) / 2;
+
+        const halfW = Math.abs(localDir.x) / 2;
+        const halfD = Math.abs(localDir.z) / 2;
+
+        const minX = newCx - halfW;
+        const maxX = newCx + halfW;
+        const minY = newCz - halfD;
+        const maxY = newCz + halfD;
 
         return [
-            { x: minX, y: minY }, // TL
-            { x: maxX, y: minY }, // TR
-            { x: maxX, y: maxY }, // BR
-            { x: minX, y: maxY }, // BL
+            { x: minX, y: minY },
+            { x: maxX, y: minY },
+            { x: maxX, y: maxY },
+            { x: minX, y: maxY },
         ];
     }
 
-    private moveEdgeFootprint(orig: Point2D[], edgeIndex: number, dx: number, dz: number): Point2D[] {
-        const fp = orig.map((p) => ({ ...p }));
-        switch (edgeIndex) {
-            case 0: fp[0].y += dz; fp[1].y += dz; break; // top edge
-            case 1: fp[1].x += dx; fp[2].x += dx; break; // right edge
-            case 2: fp[2].y += dz; fp[3].y += dz; break; // bottom edge
-            case 3: fp[3].x += dx; fp[0].x += dx; break; // left edge
+    private resizeEdgeAnchored(
+        orig: Point2D[],
+        edgeIndex: number,
+        groundPick: Vector3,
+        startWorld: Vector3,
+        rot: number,
+        toWorld: (px: number, py: number, cx: number, cz: number) => { x: number, z: number },
+        toLocalDir: (dx: number, dz: number) => { x: number, z: number }
+    ): Point2D[] {
+        const bounds = this.footprintBounds(orig);
+
+        const oppEdgeIndex = (edgeIndex + 2) % 4;
+        const p1 = orig[oppEdgeIndex];
+        const p2 = orig[(oppEdgeIndex + 1) % 4];
+
+        const oppLocalX = (p1.x + p2.x) / 2;
+        const oppLocalZ = (p1.y + p2.y) / 2;
+        const oppWorld = toWorld(oppLocalX, oppLocalZ, bounds.cx, bounds.cz);
+
+        const m1 = orig[edgeIndex];
+        const m2 = orig[(edgeIndex + 1) % 4];
+        const midLocalX = (m1.x + m2.x) / 2;
+        const midLocalZ = (m1.y + m2.y) / 2;
+        const midWorldStart = toWorld(midLocalX, midLocalZ, bounds.cx, bounds.cz);
+
+        const deltaMouseX = groundPick.x - startWorld.x;
+        const deltaMouseZ = groundPick.z - startWorld.z;
+
+        const targetMidWorldX = midWorldStart.x + deltaMouseX;
+        const targetMidWorldZ = midWorldStart.z + deltaMouseZ;
+
+        let dxWorld = targetMidWorldX - oppWorld.x;
+        let dzWorld = targetMidWorldZ - oppWorld.z;
+
+        let localDir = toLocalDir(dxWorld, dzWorld);
+
+        if (P.SNAP_INTERVAL > 0) {
+            localDir.x = Math.round(localDir.x / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
+            localDir.z = Math.round(localDir.z / P.SNAP_INTERVAL) * P.SNAP_INTERVAL;
         }
-        return fp;
+
+        const minSize = 0.5;
+        let newWidth = bounds.w;
+        let newDepth = bounds.d;
+
+        if (edgeIndex === 0 || edgeIndex === 2) {
+            newDepth = Math.abs(localDir.z);
+            if (newDepth < minSize) newDepth = minSize;
+            localDir.x = 0;
+            localDir.z = Math.sign(localDir.z || 1) * newDepth;
+        } else {
+            newWidth = Math.abs(localDir.x);
+            if (newWidth < minSize) newWidth = minSize;
+            localDir.z = 0;
+            localDir.x = Math.sign(localDir.x || 1) * newWidth;
+        }
+
+        const cos = Math.cos(rot);
+        const sin = Math.sin(rot);
+        const newDragWorldX = oppWorld.x + (localDir.x * cos + localDir.z * sin);
+        const newDragWorldZ = oppWorld.z + (-localDir.x * sin + localDir.z * cos);
+
+        const newCx = (oppWorld.x + newDragWorldX) / 2;
+        const newCz = (oppWorld.z + newDragWorldZ) / 2;
+
+        const halfW = newWidth / 2;
+        const halfD = newDepth / 2;
+
+        const minX = newCx - halfW;
+        const maxX = newCx + halfW;
+        const minY = newCz - halfD;
+        const maxY = newCz + halfD;
+
+        return [
+            { x: minX, y: minY },
+            { x: maxX, y: minY },
+            { x: maxX, y: maxY },
+            { x: minX, y: maxY },
+        ];
     }
 
     private pickGround(): Vector3 | null {

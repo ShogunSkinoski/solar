@@ -103,8 +103,8 @@ function drawElevation(
 
             const halfSpanR = footprintD / 2;
             const pitchDegR = Math.round(Math.atan2(ridgeH, halfSpanR) * 180 / Math.PI);
-            const spanMmR = Math.round(Math.sqrt(ridgeH ** 2 + halfSpanR ** 2));
-            drawBadge(ctx, bx + bw / 2, by / 2, `${pitchDegR}°  ${spanMmR}m`);
+            const spanMmR = Math.round(Math.sqrt(ridgeH ** 2 + halfSpanR ** 2) * 1000);
+            drawBadge(ctx, bx + bw / 2, by / 2, `${pitchDegR}°  ${spanMmR}mm`);
         } else {
             ctx.beginPath();
             ctx.moveTo(bx, wallTop);
@@ -115,10 +115,10 @@ function drawElevation(
             ctx.fill();
             ctx.stroke();
 
-            const halfSpan = footprintW / 2;
+            const halfSpan = footprintD / 2;
             const pitchDeg = Math.round(Math.atan2(ridgeH, halfSpan) * 180 / Math.PI);
             const spanMm = Math.round(Math.sqrt(ridgeH ** 2 + halfSpan ** 2) * 1000);
-            drawBadge(ctx, bx + bw / 2, by, `${pitchDeg}°  ${spanMm}mm`);
+            drawBadge(ctx, bx + bw / 2, (by + wallTop) / 2, `${pitchDeg}°  ${spanMm}mm`);
         }
     } else {
         ctx.beginPath();
